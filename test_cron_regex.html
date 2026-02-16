@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cron正規表現テスト</title>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .failure {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .pattern {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .result {
+            margin-top: 5px;
+            color: #666;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        #summary {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cron正規表現テスト</h1>
+    <div id="summary"></div>
+    <div id="test-results"></div>
+
+    <script>
+        // 実際の正規表現（content.jsから）- \bを削除
+        const CRON_REGEX = /([\d\*\?\/\-,]+)\s+([\d\*\?\/\-,]+)\s+([\d\*\?\/\-,LW]+)\s+([\d\*\?\/\-,]+|[A-Z]{3})\s+([\d\*\?\/\-,#]+|[A-Z]{3}(?:-[A-Z]{3})?)(?:\s+([\d\*\?\/\-,]+))?(?:\s+([\d\*\?\/\-,]+))?/gi;
+
+        // テストケース
+        const testCases = [
+            // 報告された問題のパターン
+            { pattern: "0 0 * * *", expected: true, description: "毎日深夜0時" },
+            { pattern: "*/5 * * * *", expected: true, description: "5分ごと" },
+            { pattern: "0 */2 * * *", expected: true, description: "2時間ごとの0分" },
+            { pattern: "15 10,14,18 * * *", expected: true, description: "複数時刻指定" },
+            { pattern: "0 0 1 */3 *", expected: true, description: "3ヶ月ごと" },
+            { pattern: "0 0 15 * *", expected: true, description: "毎月15日" },
+
+            // 追加パターン
+            { pattern: "30 8 * * MON-FRI", expected: true, description: "平日の朝" },
+            { pattern: "0 9-17 * * 1-5", expected: true, description: "平日の営業時間" },
+            { pattern: "*/10 * * * *", expected: true, description: "10分ごと" },
+            { pattern: "0 0 L * *", expected: true, description: "月末" },
+            { pattern: "0 0 * * 1#2", expected: true, description: "第2月曜日" },
+            { pattern: "0 12 * * ?", expected: true, description: "毎日正午（?使用）" },
+
+            // 6フィールド（秒付き）
+            { pattern: "0 */5 * * * *", expected: true, description: "5分ごと（秒付き）" },
+            { pattern: "30 10 * * * *", expected: true, description: "毎時10分30秒" },
+
+            // 無効なパターン（検出されるべきでない）
+            { pattern: "invalid", expected: false, description: "無効な文字列" },
+            { pattern: "* * *", expected: false, description: "フィールド不足" },
+            { pattern: "hello world", expected: false, description: "非Cron文字列" }
+        ];
+
+        // テスト実行
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            let passCount = 0;
+            let failCount = 0;
+            let html = '';
+
+            testCases.forEach((testCase, index) => {
+                // 正規表現をリセット
+                CRON_REGEX.lastIndex = 0;
+
+                const matches = testCase.pattern.match(CRON_REGEX);
+                const found = matches !== null && matches.length > 0;
+                const success = found === testCase.expected;
+
+                if (success) {
+                    passCount++;
+                } else {
+                    failCount++;
+                }
+
+                html += `
+                    <div class="test-case ${success ? 'success' : 'failure'}">
+                        <div class="pattern">${testCase.pattern}</div>
+                        <div class="result">
+                            期待値: ${testCase.expected ? '検出される' : '検出されない'} |
+                            結果: ${found ? '検出された' : '検出されなかった'} |
+                            ${success ? '✅ 成功' : '❌ 失敗'}
+                        </div>
+                        <div class="result">${testCase.description}</div>
+                        ${matches ? `<div class="result">マッチ内容: ${JSON.stringify(matches)}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+
+            // サマリー表示
+            const summaryDiv = document.getElementById('summary');
+            const totalTests = passCount + failCount;
+            const successRate = ((passCount / totalTests) * 100).toFixed(1);
+
+            summaryDiv.innerHTML = `
+                <strong>テスト結果:</strong>
+                ${totalTests}件中 ${passCount}件成功、${failCount}件失敗
+                (成功率: ${successRate}%)
+            `;
+
+            if (failCount === 0) {
+                summaryDiv.style.background = '#d4edda';
+                summaryDiv.style.color = '#155724';
+            } else {
+                summaryDiv.style.background = '#f8d7da';
+                summaryDiv.style.color = '#721c24';
+            }
+        }
+
+        // テスト実行
+        runTests();
+
+        // 正規表現のデバッグ情報
+        console.log('使用している正規表現:', CRON_REGEX.source);
+    </script>
+</body>
+</html>

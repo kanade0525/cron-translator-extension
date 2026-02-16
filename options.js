@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Show save confirmation
     const status = document.getElementById('saveStatus');
-    status.textContent = 'Settings saved!';
+    status.textContent = '設定を保存しました！';
     status.classList.add('show');
     setTimeout(() => {
       status.classList.remove('show');
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     li.className = 'domain-item';
     li.innerHTML = `
       <span>${domain}</span>
-      <button data-domain="${domain}">Remove</button>
+      <button data-domain="${domain}">削除</button>
     `;
     
     li.querySelector('button').addEventListener('click', (e) => {

@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Cron Expression Translator",
+  "name": "Cron翻訳ツール",
   "version": "1.0.0",
-  "description": "Translate cron expressions to human-readable format on any website",
+  "description": "あらゆるWebサイトでCron式を日本語に翻訳",
+  "default_locale": "ja",
   "permissions": [
     "storage",
     "activeTab"

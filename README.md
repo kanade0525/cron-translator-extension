@@ -1,62 +1,63 @@
-# Cron Expression Translator Chrome Extension
+# Cron翻訳ツール Chrome拡張機能
 
-A Chrome extension that automatically detects and translates cron expressions on any website into human-readable format.
+任意のWebサイトでCron式を自動検出し、日本語で分かりやすく翻訳するChrome拡張機能です。
 
-## Features
+## 機能
 
-- 🔍 **Automatic Detection**: Finds cron expressions on any webpage
-- 💬 **Human-Readable Translation**: Converts cron syntax to plain English
-- 🎯 **Smart Highlighting**: Highlights detected cron expressions
-- ⚙️ **Customizable Display**: Choose between tooltip or inline translations
-- 🚫 **Domain Exclusion**: Exclude specific websites from translation
-- ☕ **Support the Developer**: Buy Me a Coffee integration
+- 🔍 **自動検出**: ウェブページ上のCron式を自動的に検出
+- 💬 **日本語翻訳**: Cron構文を分かりやすい日本語に変換
+- 🎯 **スマートハイライト**: 検出されたCron式をハイライト表示
+- ⚙️ **表示カスタマイズ**: ツールチップまたはインライン表示を選択可能
+- 🚫 **ドメイン除外**: 特定のWebサイトで翻訳を無効化
+- ☕ **開発者支援**: Buy Me a Coffee統合
 
-## Installation
+## インストール方法
 
-1. Clone this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the extension directory
+1. このリポジトリをクローン
+2. Chromeで `chrome://extensions/` を開く
+3. 「デベロッパーモード」を有効化
+4. 「パッケージ化されていない拡張機能を読み込む」をクリックして、拡張機能のディレクトリを選択
 
-## Usage
+## 使い方
 
-- The extension automatically detects cron expressions on any webpage
-- Hover over highlighted expressions to see translations
-- Click the extension icon to toggle on/off
-- Access settings to customize behavior and exclude domains
+- 拡張機能が自動的にWebページ上のCron式を検出します
+- ハイライトされた式にマウスオーバーすると翻訳が表示されます
+- 拡張機能アイコンをクリックして有効/無効を切り替え
+- 設定画面で動作をカスタマイズ、ドメインを除外設定
 
-## Buy Me a Coffee Setup
+## Buy Me a Coffee設定
 
-To enable Buy Me a Coffee donations:
+Buy Me a Coffeeでの寄付を有効にするには:
 
-1. Create an account at [buymeacoffee.com](https://www.buymeacoffee.com)
-2. Edit `popup.js` and `options.js`
-3. Replace `YOUR_USERNAME` with your Buy Me a Coffee username
+1. [buymeacoffee.com](https://www.buymeacoffee.com)でアカウント作成
+2. `popup.js`と`options.js`を編集
+3. `YOUR_USERNAME`をあなたのBuy Me a Coffeeユーザー名に変更
 
-## Examples of Detected Patterns
+## 検出パターンの例
 
-- `0 0 * * *` → "Runs at 00:00 every day"
-- `*/5 * * * *` → "Runs every 5 minutes"
-- `0 9-17 * * MON-FRI` → "Runs at minute 0 from 9 to 17 on Monday through Friday"
+- `0 0 * * *` → 「毎日0時0分」
+- `*/5 * * * *` → 「5分ごと」
+- `0 9-17 * * MON-FRI` → 「月曜日から金曜日の9時〜17時の0分」
 
-## Development
+## 開発
 
-### File Structure
+### ファイル構造
 
-- `manifest.json` - Extension configuration
-- `content.js` - Main translation logic
-- `background.js` - Background service worker
-- `popup.html/js/css` - Extension popup interface
-- `options.html/js/css` - Settings page
-- `styles.css` - Injected styles for translations
+- `manifest.json` - 拡張機能の設定
+- `content.js` - メインの翻訳ロジック
+- `background.js` - バックグラウンドサービスワーカー
+- `popup.html/js/css` - 拡張機能のポップアップインターフェース
+- `options.html/js/css` - 設定ページ
+- `styles.css` - 翻訳表示用の注入スタイル
+- `_locales/ja/` - 日本語ローカライゼーション
 
-### Testing
+### テスト方法
 
-1. Make changes to the code
-2. Go to `chrome://extensions/`
-3. Click the refresh button on the extension card
-4. Test on websites with cron expressions
+1. コードを変更
+2. `chrome://extensions/` を開く
+3. 拡張機能カードの更新ボタンをクリック
+4. Cron式を含むWebサイトでテスト
 
-## License
+## ライセンス
 
 MIT

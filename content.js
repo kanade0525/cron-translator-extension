@@ -208,38 +208,38 @@ function translateCron(expression) {
     return translateCronWithYear(parts);
   }
   
-  return 'Invalid cron expression';
+  return '無効なCron式';
 }
 
 function translateStandardCron(parts) {
   const [minute, hour, day, month, weekday] = parts;
-  let result = 'Runs ';
+  let result = '';
   
   // Time
   if (minute === '*' && hour === '*') {
-    result += 'every minute';
+    result += '毎分';
   } else if (minute === '0' && hour === '*') {
-    result += 'every hour';
+    result += '毎時0分';
   } else if (minute === '*') {
-    result += `every minute at ${translateHour(hour)}`;
+    result += `${translateHour(hour)}の毎分`;
   } else if (hour === '*') {
-    result += `at minute ${minute} of every hour`;
+    result += `毎時${minute}分`;
   } else {
-    result += `at ${translateHour(hour)}:${minute.padStart(2, '0')}`;
+    result += `${translateHour(hour)}時${minute.padStart(2, '0')}分`;
   }
   
   // Day and month
   if (day !== '*' && month !== '*') {
-    result += ` on day ${day} of ${translateMonth(month)}`;
+    result += ` ${translateMonth(month)}${day}日`;
   } else if (day !== '*') {
-    result += ` on day ${day} of every month`;
+    result += ` 毎月${day}日`;
   } else if (month !== '*') {
-    result += ` in ${translateMonth(month)}`;
+    result += ` ${translateMonth(month)}`;
   }
   
   // Weekday
   if (weekday !== '*' && weekday !== '?') {
-    result += ` on ${translateWeekday(weekday)}`;
+    result += ` ${translateWeekday(weekday)}`;
   }
   
   return result;
@@ -250,7 +250,7 @@ function translateCronWithSeconds(parts) {
   let base = translateStandardCron(rest);
   
   if (second !== '*' && second !== '0') {
-    base = base.replace('Runs ', `Runs at second ${second}, `);
+    base = `${second}秒 ` + base;
   }
   
   return base;
@@ -261,21 +261,21 @@ function translateCronWithYear(parts) {
   const year = parts[6];
   
   if (year !== '*') {
-    return base + ` in ${year}`;
+    return base + ` ${year}年`;
   }
   
   return base;
 }
 
 function translateHour(hour) {
-  if (hour === '*') return 'every hour';
+  if (hour === '*') return '毎時';
   if (hour.includes('/')) {
     const [start, interval] = hour.split('/');
-    return `every ${interval} hours starting at ${start}`;
+    return `${start}時から${interval}時間ごと`;
   }
   if (hour.includes('-')) {
     const [start, end] = hour.split('-');
-    return `${start} to ${end}`;
+    return `${start}時〜${end}時`;
   }
   if (hour.includes(',')) {
     return hour.split(',').join(', ');
@@ -285,21 +285,21 @@ function translateHour(hour) {
 
 function translateMonth(month) {
   const months = {
-    '1': 'January', 'JAN': 'January',
-    '2': 'February', 'FEB': 'February',
-    '3': 'March', 'MAR': 'March',
-    '4': 'April', 'APR': 'April',
-    '5': 'May', 'MAY': 'May',
-    '6': 'June', 'JUN': 'June',
-    '7': 'July', 'JUL': 'July',
-    '8': 'August', 'AUG': 'August',
-    '9': 'September', 'SEP': 'September',
-    '10': 'October', 'OCT': 'October',
-    '11': 'November', 'NOV': 'November',
-    '12': 'December', 'DEC': 'December'
+    '1': '1月', 'JAN': '1月',
+    '2': '2月', 'FEB': '2月',
+    '3': '3月', 'MAR': '3月',
+    '4': '4月', 'APR': '4月',
+    '5': '5月', 'MAY': '5月',
+    '6': '6月', 'JUN': '6月',
+    '7': '7月', 'JUL': '7月',
+    '8': '8月', 'AUG': '8月',
+    '9': '9月', 'SEP': '9月',
+    '10': '10月', 'OCT': '10月',
+    '11': '11月', 'NOV': '11月',
+    '12': '12月', 'DEC': '12月'
   };
   
-  if (month === '*') return 'every month';
+  if (month === '*') return '毎月';
   if (month.includes(',')) {
     return month.split(',').map(m => months[m.toUpperCase()] || m).join(', ');
   }
@@ -309,17 +309,17 @@ function translateMonth(month) {
 
 function translateWeekday(weekday) {
   const days = {
-    '0': 'Sunday', 'SUN': 'Sunday',
-    '1': 'Monday', 'MON': 'Monday',
-    '2': 'Tuesday', 'TUE': 'Tuesday',
-    '3': 'Wednesday', 'WED': 'Wednesday',
-    '4': 'Thursday', 'THU': 'Thursday',
-    '5': 'Friday', 'FRI': 'Friday',
-    '6': 'Saturday', 'SAT': 'Saturday',
-    '7': 'Sunday'
+    '0': '日曜日', 'SUN': '日曜日',
+    '1': '月曜日', 'MON': '月曜日',
+    '2': '火曜日', 'TUE': '火曜日',
+    '3': '水曜日', 'WED': '水曜日',
+    '4': '木曜日', 'THU': '木曜日',
+    '5': '金曜日', 'FRI': '金曜日',
+    '6': '土曜日', 'SAT': '土曜日',
+    '7': '日曜日'
   };
   
-  if (weekday === '*') return 'every day';
+  if (weekday === '*') return '毎日';
   if (weekday.includes(',')) {
     return weekday.split(',').map(d => days[d.toUpperCase()] || d).join(', ');
   }

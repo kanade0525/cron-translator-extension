@@ -22,6 +22,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Buy Me a Coffee
   coffeeBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://www.buymeacoffee.com/YOUR_USERNAME' });
+    chrome.tabs.create({ url: 'https://www.buymeacoffee.com/kanade0525' });
   });
 });

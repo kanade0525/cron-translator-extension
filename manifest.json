@@ -3,7 +3,6 @@
   "name": "Cron翻訳ツール",
   "version": "1.0.0",
   "description": "あらゆるWebサイトでCron式を日本語に翻訳",
-  "default_locale": "ja",
   "permissions": [
     "storage",
     "activeTab"

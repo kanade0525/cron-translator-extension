@@ -1,7 +1,14 @@
 // Background service worker for Chrome Extension
 
-// Initialize extension on install
+// 右クリックメニューを作成
 chrome.runtime.onInstalled.addListener(() => {
+  // コンテキストメニューを作成
+  chrome.contextMenus.create({
+    id: "translate-cron",
+    title: "Cron式を翻訳",
+    contexts: ["selection"]
+  });
+
   // Set default settings
   chrome.storage.sync.get({
     enabled: true,
@@ -16,16 +23,17 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Handle messages from content scripts and popup
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'toggleEnabled') {
-    // Broadcast to all tabs
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach(tab => {
-        chrome.tabs.sendMessage(tab.id, request).catch(() => {
-          // Ignore errors for tabs without content script
-        });
-      });
+// 右クリックメニューがクリックされた時
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "translate-cron") {
+    // 選択されたテキストをcontent scriptに送信
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'translateSelection'
+    }, (response) => {
+      if (!response || !response.success) {
+        // エラーの場合、通知を表示
+        console.log('Translation failed:', response?.message || 'Unknown error');
+      }
     });
   }
 });
@@ -36,9 +44,9 @@ function resetDailyCount() {
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   tomorrow.setHours(0, 0, 0, 0);
-  
+
   const timeUntilMidnight = tomorrow - now;
-  
+
   setTimeout(() => {
     chrome.storage.sync.set({ todayCount: 0, lastCountDate: new Date().toDateString() });
     resetDailyCount(); // Schedule next reset

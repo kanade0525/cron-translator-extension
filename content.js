@@ -1,81 +1,33 @@
-// Cron expression pattern
-const CRON_REGEX = /\b(\*|\?|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}|\*\/\d{1,2}|[A-Z]{3})([\s\t]+(\*|\?|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}|\*\/\d{1,2}|[A-Z]{3})){4,6}\b/gi;
-
-let settings = {
-  enabled: true,
-  excludedDomains: [],
-  showTooltip: true,
-  showInline: false,
-  translationDelay: 500
-};
+// 超軽量版 - 右クリックメニューからのみ動作
+// ページ読み込み時は何もしない - イベントリスナーも最小限
 
 let currentTooltip = null;
 
-// Load settings
-chrome.storage.sync.get(settings, (result) => {
-  settings = { ...settings, ...result };
-  if (settings.enabled && !isExcludedDomain()) {
-    initializeTranslator();
-  }
-});
+// 右クリックメニューから呼ばれた時のみ実行
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'translateSelection') {
+    const selection = window.getSelection();
+    const selectedText = selection.toString().trim();
 
-// Listen for settings changes
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync') {
-    Object.keys(changes).forEach(key => {
-      settings[key] = changes[key].newValue;
-    });
+    if (selectedText && isCronExpression(selectedText)) {
+      const translation = translateCron(selectedText);
+      showTooltip(translation);
 
-    if (!settings.enabled || isExcludedDomain()) {
-      removeTooltip();
+      // 翻訳カウントを更新
+      updateTranslationCount();
+
+      sendResponse({success: true, translation: translation});
+    } else {
+      sendResponse({success: false, message: '有効なCron式ではありません'});
     }
   }
+  return true;
 });
 
-function isExcludedDomain() {
-  const currentDomain = window.location.hostname.toLowerCase();
-  return settings.excludedDomains.some(domain =>
-    currentDomain.includes(domain.toLowerCase())
-  );
-}
-
-function initializeTranslator() {
-  // マウス選択時のみ翻訳を表示
-  document.addEventListener('mouseup', handleTextSelection);
-  document.addEventListener('selectionchange', handleSelectionChange);
-
-  // クリックで翻訳を隠す
-  document.addEventListener('mousedown', removeTooltip);
-}
-
-function handleTextSelection(e) {
-  if (!settings.enabled || isExcludedDomain()) return;
-
-  const selection = window.getSelection();
-  const selectedText = selection.toString().trim();
-
-  if (selectedText && isCronExpression(selectedText)) {
-    showTranslation(selectedText, e.clientX, e.clientY);
-    updateTranslationCount();
-  }
-}
-
-function handleSelectionChange() {
-  const selection = window.getSelection();
-  const selectedText = selection.toString().trim();
-
-  if (!selectedText || !isCronExpression(selectedText)) {
-    removeTooltip();
-  }
-}
-
 function isCronExpression(text) {
-  const trimmed = text.trim();
-  const parts = trimmed.split(/\s+/);
-
+  const parts = text.trim().split(/\s+/);
   if (parts.length < 5 || parts.length > 7) return false;
 
-  // Basic validation
   return parts.every(part => {
     return part === '*' ||
            part === '?' ||
@@ -88,51 +40,49 @@ function isCronExpression(text) {
   });
 }
 
-function showTranslation(cronExpression, x, y) {
-  removeTooltip();
-
-  const translation = translateCron(cronExpression);
+function showTooltip(text) {
+  // 既存のツールチップを削除
+  if (currentTooltip) {
+    currentTooltip.remove();
+  }
 
   currentTooltip = document.createElement('div');
   currentTooltip.style.cssText = `
     position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     background: #333;
     color: white;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 16px;
     z-index: 999999;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    line-height: 1.4;
-    max-width: 300px;
-    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    max-width: 400px;
+    text-align: center;
+    cursor: pointer;
   `;
+  currentTooltip.textContent = text;
+  currentTooltip.title = 'クリックで閉じる';
 
-  currentTooltip.textContent = translation;
+  // クリックで閉じる
+  currentTooltip.addEventListener('click', () => {
+    if (currentTooltip) {
+      currentTooltip.remove();
+      currentTooltip = null;
+    }
+  });
+
   document.body.appendChild(currentTooltip);
 
-  // Position tooltip
-  const rect = currentTooltip.getBoundingClientRect();
-  let top = y - rect.height - 10;
-  let left = x - rect.width / 2;
-
-  // Keep tooltip in viewport
-  if (top < 10) top = y + 20;
-  if (left < 10) left = 10;
-  if (left + rect.width > window.innerWidth - 10) {
-    left = window.innerWidth - rect.width - 10;
-  }
-
-  currentTooltip.style.top = top + 'px';
-  currentTooltip.style.left = left + 'px';
-}
-
-function removeTooltip() {
-  if (currentTooltip) {
-    currentTooltip.remove();
-    currentTooltip = null;
-  }
+  // 5秒後に自動削除
+  setTimeout(() => {
+    if (currentTooltip) {
+      currentTooltip.remove();
+      currentTooltip = null;
+    }
+  }, 5000);
 }
 
 function translateCron(expression) {
@@ -264,31 +214,3 @@ function translateWeekday(weekday) {
 
   return days[weekday.toUpperCase()] || weekday;
 }
-
-function updateTranslationCount() {
-  const today = new Date().toDateString();
-  chrome.storage.sync.get(['lastCountDate', 'todayCount'], (result) => {
-    let count = result.todayCount || 0;
-
-    if (result.lastCountDate !== today) {
-      count = 0;
-    }
-
-    count++;
-
-    chrome.storage.sync.set({
-      lastCountDate: today,
-      todayCount: count
-    });
-  });
-}
-
-// Listen for messages from popup/background
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'toggleEnabled') {
-    settings.enabled = request.enabled;
-    if (!settings.enabled) {
-      removeTooltip();
-    }
-  }
-});

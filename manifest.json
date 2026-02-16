@@ -5,7 +5,8 @@
   "description": "選択したCron式を日本語に翻訳（軽量・高速）",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"

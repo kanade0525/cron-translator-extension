@@ -1,13 +1,21 @@
 // Background service worker for Chrome Extension
 
-// 右クリックメニューを作成
-chrome.runtime.onInstalled.addListener(() => {
-  // コンテキストメニューを作成
+// コンテキストメニューを作成する関数
+async function createContextMenu() {
+  // 既存のメニューをクリア
+  await chrome.contextMenus.removeAll();
+
+  // 新しいメニューを作成
   chrome.contextMenus.create({
     id: "translate-cron",
     title: "Cron式を翻訳",
     contexts: ["selection"]
   });
+}
+
+// 拡張機能インストール時
+chrome.runtime.onInstalled.addListener(() => {
+  createContextMenu();
 
   // Set default settings
   chrome.storage.sync.get({
@@ -23,6 +31,11 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// 拡張機能起動時（ブラウザ起動時）
+chrome.runtime.onStartup.addListener(() => {
+  createContextMenu();
+});
+
 // 右クリックメニューがクリックされた時
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "translate-cron") {
@@ -30,8 +43,20 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     chrome.tabs.sendMessage(tab.id, {
       action: 'translateSelection'
     }, (response) => {
-      if (!response || !response.success) {
-        // エラーの場合、通知を表示
+      // エラーハンドリング
+      if (chrome.runtime.lastError) {
+        console.log('Error:', chrome.runtime.lastError.message);
+        // Content scriptが読み込まれていない場合、手動で注入
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        }, () => {
+          // 再度メッセージを送信
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'translateSelection'
+          });
+        });
+      } else if (!response || !response.success) {
         console.log('Translation failed:', response?.message || 'Unknown error');
       }
     });

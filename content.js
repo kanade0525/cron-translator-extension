@@ -1,6 +1,6 @@
-// Cron expression pattern - 改良版
-// 曜日範囲、カンマ区切り、L/W/# などの特殊文字に対応
-const CRON_REGEX = /\b([\d*?]+(?:[-,\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?)\s+([\d*?]+(?:[-,\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?)\s+([\d*?LW]+(?:[-,\/]\S+)?)\s+([\d*?]+(?:[-,\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?)\s+([\d*?]+(?:[-,#\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?|[A-Z]{3})(?:\s+([\d*?]+(?:[-,\/]\S+)?))?(?:\s+([\d*?]+(?:[-,\/]\S+)?))?\b/gi;
+// Cron expression pattern - シンプル版
+// 5〜7個のフィールドを持つCron式を検出
+const CRON_REGEX = /\b([0-9*\/?,-]+|[A-Z]{3}(?:-[A-Z]{3})?)\s+([0-9*\/?,-]+|[A-Z]{3}(?:-[A-Z]{3})?)\s+([0-9*\/?,-]+|[LW]+)\s+([0-9*\/?,-]+|[A-Z]{3}(?:-[A-Z]{3})?)\s+([0-9*\/?#,-]+|[A-Z]{3}(?:-[A-Z]{3})?)(?:\s+([0-9*\/?,-]+))?(?:\s+([0-9*\/?,-]+))?\b/gi;
 
 let settings = {
   enabled: true,
@@ -297,26 +297,67 @@ function translateStandardCron(parts) {
   const [minute, hour, day, month, weekday] = parts;
   let result = '';
 
-  // Time
+  // Time translation - improved
   if (minute === '*' && hour === '*') {
     result += '毎分';
   } else if (minute === '0' && hour === '*') {
     result += '毎時0分';
+  } else if (minute.startsWith('*/')) {
+    const interval = minute.substring(2);
+    result += `${interval}分ごと`;
+    if (hour !== '*') {
+      result += ` (${translateHour(hour)})`;
+    }
+  } else if (hour.startsWith('*/')) {
+    const interval = hour.substring(2);
+    result += `${interval}時間ごと`;
+    if (minute !== '*' && minute !== '0') {
+      result += `の${minute}分`;
+    } else if (minute === '0') {
+      result += 'の0分';
+    }
   } else if (minute === '*') {
     result += `${translateHour(hour)}の毎分`;
   } else if (hour === '*') {
-    result += `毎時${minute}分`;
+    if (minute.includes(',')) {
+      result += `毎時${minute.split(',').map(m => `${m}分`).join('と')}`;
+    } else {
+      result += `毎時${minute}分`;
+    }
   } else {
-    result += `${translateHour(hour)}時${minute.padStart(2, '0')}分`;
+    // Handle comma-separated hours
+    if (hour.includes(',')) {
+      const hours = hour.split(',').map(h => `${h}時`).join('と');
+      result += `${hours}${minute.padStart(2, '0')}分`;
+    } else {
+      result += `${translateHour(hour)}時${minute.padStart(2, '0')}分`;
+    }
   }
 
-  // Day and month
+  // Day and month - improved
   if (day !== '*' && month !== '*') {
-    result += ` ${translateMonth(month)}${day}日`;
+    if (month.startsWith('*/')) {
+      const interval = month.substring(2);
+      result += ` ${interval}ヶ月ごとの${day}日`;
+    } else {
+      result += ` ${translateMonth(month)}${day}日`;
+    }
   } else if (day !== '*') {
-    result += ` 毎月${day}日`;
+    if (day === 'L') {
+      result += ` 毎月最終日`;
+    } else if (day.includes('W')) {
+      const dayNum = day.replace('W', '');
+      result += ` 毎月${dayNum}日に最も近い平日`;
+    } else {
+      result += ` 毎月${day}日`;
+    }
   } else if (month !== '*') {
-    result += ` ${translateMonth(month)}`;
+    if (month.startsWith('*/')) {
+      const interval = month.substring(2);
+      result += ` ${interval}ヶ月ごと`;
+    } else {
+      result += ` ${translateMonth(month)}`;
+    }
   }
 
   // Weekday

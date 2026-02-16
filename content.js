@@ -9,7 +9,7 @@ let settings = {
   translationDelay: 500
 };
 
-let translationCount = 0;
+let currentTooltip = null;
 
 // Load settings
 chrome.storage.sync.get(settings, (result) => {
@@ -25,93 +25,59 @@ chrome.storage.onChanged.addListener((changes, area) => {
     Object.keys(changes).forEach(key => {
       settings[key] = changes[key].newValue;
     });
-    
-    if (settings.enabled && !isExcludedDomain()) {
-      initializeTranslator();
-    } else {
-      removeAllTranslations();
+
+    if (!settings.enabled || isExcludedDomain()) {
+      removeTooltip();
     }
   }
 });
 
 function isExcludedDomain() {
   const currentDomain = window.location.hostname.toLowerCase();
-  return settings.excludedDomains.some(domain => 
+  return settings.excludedDomains.some(domain =>
     currentDomain.includes(domain.toLowerCase())
   );
 }
 
 function initializeTranslator() {
-  // Scan the page initially
-  scanAndTranslate();
-  
-  // Set up mutation observer for dynamic content
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === 'childList') {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.TEXT_NODE) {
-            processTextNode(node);
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-            scanElement(node);
-          }
-        });
-      }
-    });
-  });
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+  // マウス選択時のみ翻訳を表示
+  document.addEventListener('mouseup', handleTextSelection);
+  document.addEventListener('selectionchange', handleSelectionChange);
+
+  // クリックで翻訳を隠す
+  document.addEventListener('mousedown', removeTooltip);
 }
 
-function scanAndTranslate() {
-  scanElement(document.body);
-}
+function handleTextSelection(e) {
+  if (!settings.enabled || isExcludedDomain()) return;
 
-function scanElement(element) {
-  const walker = document.createTreeWalker(
-    element,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: (node) => {
-        // Skip script and style tags
-        if (node.parentElement.tagName === 'SCRIPT' || 
-            node.parentElement.tagName === 'STYLE' ||
-            node.parentElement.classList.contains('cron-translation')) {
-          return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    }
-  );
-  
-  let node;
-  while (node = walker.nextNode()) {
-    processTextNode(node);
+  const selection = window.getSelection();
+  const selectedText = selection.toString().trim();
+
+  if (selectedText && isCronExpression(selectedText)) {
+    showTranslation(selectedText, e.clientX, e.clientY);
+    updateTranslationCount();
   }
 }
 
-function processTextNode(textNode) {
-  const text = textNode.textContent;
-  const matches = text.matchAll(CRON_REGEX);
-  
-  for (const match of matches) {
-    const cronExpression = match[0];
-    if (isCronExpression(cronExpression)) {
-      highlightCronExpression(textNode, cronExpression);
-    }
+function handleSelectionChange() {
+  const selection = window.getSelection();
+  const selectedText = selection.toString().trim();
+
+  if (!selectedText || !isCronExpression(selectedText)) {
+    removeTooltip();
   }
 }
 
 function isCronExpression(text) {
-  const parts = text.trim().split(/\s+/);
+  const trimmed = text.trim();
+  const parts = trimmed.split(/\s+/);
+
   if (parts.length < 5 || parts.length > 7) return false;
-  
+
   // Basic validation
   return parts.every(part => {
-    return part === '*' || 
+    return part === '*' ||
            part === '?' ||
            /^\d+$/.test(part) ||
            /^\d+-\d+$/.test(part) ||
@@ -122,84 +88,56 @@ function isCronExpression(text) {
   });
 }
 
-function highlightCronExpression(textNode, cronExpression) {
-  const parent = textNode.parentElement;
-  if (parent.classList && parent.classList.contains('cron-wrapper')) {
-    return; // Already processed
+function showTranslation(cronExpression, x, y) {
+  removeTooltip();
+
+  const translation = translateCron(cronExpression);
+
+  currentTooltip = document.createElement('div');
+  currentTooltip.style.cssText = `
+    position: fixed;
+    background: #333;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 999999;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.4;
+    max-width: 300px;
+    pointer-events: none;
+  `;
+
+  currentTooltip.textContent = translation;
+  document.body.appendChild(currentTooltip);
+
+  // Position tooltip
+  const rect = currentTooltip.getBoundingClientRect();
+  let top = y - rect.height - 10;
+  let left = x - rect.width / 2;
+
+  // Keep tooltip in viewport
+  if (top < 10) top = y + 20;
+  if (left < 10) left = 10;
+  if (left + rect.width > window.innerWidth - 10) {
+    left = window.innerWidth - rect.width - 10;
   }
-  
-  const text = textNode.textContent;
-  const index = text.indexOf(cronExpression);
-  
-  if (index !== -1) {
-    const before = text.substring(0, index);
-    const after = text.substring(index + cronExpression.length);
-    
-    const wrapper = document.createElement('span');
-    wrapper.className = 'cron-wrapper';
-    
-    if (before) {
-      parent.insertBefore(document.createTextNode(before), textNode);
-    }
-    
-    const cronElement = createCronElement(cronExpression);
-    parent.insertBefore(cronElement, textNode);
-    
-    if (after) {
-      parent.insertBefore(document.createTextNode(after), textNode);
-    }
-    
-    parent.removeChild(textNode);
-    
-    // Increment translation count
-    translationCount++;
-    updateTranslationCount();
-  }
+
+  currentTooltip.style.top = top + 'px';
+  currentTooltip.style.left = left + 'px';
 }
 
-function createCronElement(cronExpression) {
-  const wrapper = document.createElement('span');
-  wrapper.className = 'cron-wrapper';
-  wrapper.setAttribute('data-cron', cronExpression);
-  
-  const cronSpan = document.createElement('span');
-  cronSpan.className = 'cron-expression';
-  cronSpan.textContent = cronExpression;
-  wrapper.appendChild(cronSpan);
-  
-  const translation = translateCron(cronExpression);
-  
-  if (settings.showTooltip) {
-    const tooltip = document.createElement('span');
-    tooltip.className = 'cron-tooltip';
-    tooltip.textContent = translation;
-    wrapper.appendChild(tooltip);
-    
-    // Show tooltip on hover
-    wrapper.addEventListener('mouseenter', () => {
-      setTimeout(() => {
-        tooltip.style.display = 'block';
-      }, settings.translationDelay);
-    });
-    
-    wrapper.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
-    });
+function removeTooltip() {
+  if (currentTooltip) {
+    currentTooltip.remove();
+    currentTooltip = null;
   }
-  
-  if (settings.showInline) {
-    const inline = document.createElement('span');
-    inline.className = 'cron-inline';
-    inline.textContent = ` (${translation})`;
-    wrapper.appendChild(inline);
-  }
-  
-  return wrapper;
 }
 
 function translateCron(expression) {
   const parts = expression.trim().split(/\s+/);
-  
+
   if (parts.length === 5) {
     return translateStandardCron(parts);
   } else if (parts.length === 6) {
@@ -207,14 +145,14 @@ function translateCron(expression) {
   } else if (parts.length === 7) {
     return translateCronWithYear(parts);
   }
-  
+
   return '無効なCron式';
 }
 
 function translateStandardCron(parts) {
   const [minute, hour, day, month, weekday] = parts;
   let result = '';
-  
+
   // Time
   if (minute === '*' && hour === '*') {
     result += '毎分';
@@ -227,7 +165,7 @@ function translateStandardCron(parts) {
   } else {
     result += `${translateHour(hour)}時${minute.padStart(2, '0')}分`;
   }
-  
+
   // Day and month
   if (day !== '*' && month !== '*') {
     result += ` ${translateMonth(month)}${day}日`;
@@ -236,34 +174,34 @@ function translateStandardCron(parts) {
   } else if (month !== '*') {
     result += ` ${translateMonth(month)}`;
   }
-  
+
   // Weekday
   if (weekday !== '*' && weekday !== '?') {
     result += ` ${translateWeekday(weekday)}`;
   }
-  
+
   return result;
 }
 
 function translateCronWithSeconds(parts) {
   const [second, ...rest] = parts;
   let base = translateStandardCron(rest);
-  
+
   if (second !== '*' && second !== '0') {
     base = `${second}秒 ` + base;
   }
-  
+
   return base;
 }
 
 function translateCronWithYear(parts) {
   const base = translateCronWithSeconds(parts.slice(0, 6));
   const year = parts[6];
-  
+
   if (year !== '*') {
     return base + ` ${year}年`;
   }
-  
+
   return base;
 }
 
@@ -298,12 +236,12 @@ function translateMonth(month) {
     '11': '11月', 'NOV': '11月',
     '12': '12月', 'DEC': '12月'
   };
-  
+
   if (month === '*') return '毎月';
   if (month.includes(',')) {
     return month.split(',').map(m => months[m.toUpperCase()] || m).join(', ');
   }
-  
+
   return months[month.toUpperCase()] || month;
 }
 
@@ -318,12 +256,12 @@ function translateWeekday(weekday) {
     '6': '土曜日', 'SAT': '土曜日',
     '7': '日曜日'
   };
-  
+
   if (weekday === '*') return '毎日';
   if (weekday.includes(',')) {
     return weekday.split(',').map(d => days[d.toUpperCase()] || d).join(', ');
   }
-  
+
   return days[weekday.toUpperCase()] || weekday;
 }
 
@@ -331,13 +269,13 @@ function updateTranslationCount() {
   const today = new Date().toDateString();
   chrome.storage.sync.get(['lastCountDate', 'todayCount'], (result) => {
     let count = result.todayCount || 0;
-    
+
     if (result.lastCountDate !== today) {
       count = 0;
     }
-    
+
     count++;
-    
+
     chrome.storage.sync.set({
       lastCountDate: today,
       todayCount: count
@@ -345,22 +283,12 @@ function updateTranslationCount() {
   });
 }
 
-function removeAllTranslations() {
-  document.querySelectorAll('.cron-wrapper').forEach(wrapper => {
-    const cronText = wrapper.querySelector('.cron-expression').textContent;
-    const textNode = document.createTextNode(cronText);
-    wrapper.parentNode.replaceChild(textNode, wrapper);
-  });
-}
-
 // Listen for messages from popup/background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'toggleEnabled') {
     settings.enabled = request.enabled;
-    if (settings.enabled && !isExcludedDomain()) {
-      initializeTranslator();
-    } else {
-      removeAllTranslations();
+    if (!settings.enabled) {
+      removeTooltip();
     }
   }
 });

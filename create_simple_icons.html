@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .icon-box {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            display: inline-block;
+            margin-right: 20px;
+            vertical-align: middle;
+        }
+        button {
+            padding: 8px 16px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        button:hover {
+            background: #357ABD;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>アイコン生成ツール</h1>
+
+        <div class="icon-box">
+            <canvas id="icon128" width="128" height="128"></canvas>
+            <button onclick="save('icon128', 'icon-128.png')">icon-128.png 保存</button>
+        </div>
+
+        <div class="icon-box">
+            <canvas id="icon48" width="48" height="48"></canvas>
+            <button onclick="save('icon48', 'icon-48.png')">icon-48.png 保存</button>
+        </div>
+
+        <div class="icon-box">
+            <canvas id="icon16" width="16" height="16"></canvas>
+            <button onclick="save('icon16', 'icon-16.png')">icon-16.png 保存</button>
+        </div>
+
+        <div class="info">
+            保存したファイルを icons フォルダに移動してください
+        </div>
+    </div>
+
+    <script>
+        // シンプルなアイコン描画
+        function draw(id, size) {
+            const c = document.getElementById(id);
+            const ctx = c.getContext('2d');
+
+            // 背景色（青）
+            ctx.fillStyle = '#4A90E2';
+            ctx.fillRect(0, 0, size, size);
+
+            // 白文字
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (size === 128) {
+                ctx.font = 'bold 40px sans-serif';
+                ctx.fillText('Cron', 64, 45);
+                ctx.font = 'bold 36px sans-serif';
+                ctx.fillText('翻訳', 64, 85);
+            } else if (size === 48) {
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText('Cron', 24, 18);
+                ctx.font = 'bold 14px sans-serif';
+                ctx.fillText('翻', 24, 32);
+            } else {
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText('C', 8, 8);
+            }
+        }
+
+        // 保存機能
+        function save(id, filename) {
+            const canvas = document.getElementById(id);
+            const a = document.createElement('a');
+            a.download = filename;
+            a.href = canvas.toDataURL();
+            a.click();
+        }
+
+        // 初期描画（1回だけ）
+        draw('icon128', 128);
+        draw('icon48', 48);
+        draw('icon16', 16);
+    </script>
+</body>
+</html>

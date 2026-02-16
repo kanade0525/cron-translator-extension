@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Cron翻訳ツール",
+  "name": "Cron翻訳ツール - 軽量版",
   "version": "1.0.0",
-  "description": "あらゆるWebサイトでCron式を日本語に翻訳",
+  "description": "選択したCron式を日本語に翻訳（軽量・高速）",
   "permissions": [
     "storage",
     "activeTab"

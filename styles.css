@@ -1,0 +1,58 @@
+.cron-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.cron-expression {
+  background: linear-gradient(to bottom, transparent 60%, rgba(255, 221, 0, 0.3) 60%);
+  padding: 0 2px;
+  border-radius: 2px;
+  cursor: help;
+  transition: background 0.3s ease;
+}
+
+.cron-expression:hover {
+  background: linear-gradient(to bottom, transparent 60%, rgba(255, 221, 0, 0.5) 60%);
+}
+
+.cron-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  z-index: 10000;
+  display: none;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.4;
+  max-width: 300px;
+  white-space: normal;
+}
+
+.cron-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #333;
+}
+
+.cron-inline {
+  color: #666;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-left: 4px;
+}
+
+.cron-translation {
+  /* Marker class to prevent re-processing */
+}

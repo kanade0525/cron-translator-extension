@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <h1>Cron Translator</h1>
+    
+    <div class="toggle-section">
+      <label class="switch">
+        <input type="checkbox" id="enableToggle">
+        <span class="slider"></span>
+      </label>
+      <span>Enable Translation</span>
+    </div>
+
+    <div class="stats">
+      <p>Translations today: <span id="translationCount">0</span></p>
+    </div>
+
+    <div class="buttons">
+      <button id="settingsBtn">Settings</button>
+      <button id="coffeeBtn">☕ Buy Me a Coffee</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

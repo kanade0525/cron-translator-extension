@@ -1,5 +1,6 @@
-// Cron expression pattern - 最適化版
-const CRON_REGEX = /\b(\*|\?|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}|\*\/\d{1,2}|[A-Z]{3})([\s\t]+(\*|\?|\d{1,2}|\d{1,2}-\d{1,2}|\d{1,2}\/\d{1,2}|\*\/\d{1,2}|[A-Z]{3})){4,6}\b/gi;
+// Cron expression pattern - 改良版
+// 曜日範囲、カンマ区切り、L/W/# などの特殊文字に対応
+const CRON_REGEX = /\b([\d*?]+(?:[-,\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?)\s+([\d*?]+(?:[-,\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?)\s+([\d*?LW]+(?:[-,\/]\S+)?)\s+([\d*?]+(?:[-,\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?)\s+([\d*?]+(?:[-,#\/]\S+)?|[A-Z]{3}(?:-[A-Z]{3})?|[A-Z]{3})(?:\s+([\d*?]+(?:[-,\/]\S+)?))?(?:\s+([\d*?]+(?:[-,\/]\S+)?))?\b/gi;
 
 let settings = {
   enabled: true,
@@ -267,10 +268,14 @@ function isCronExpression(text) {
            part === '?' ||
            /^\d+$/.test(part) ||
            /^\d+-\d+$/.test(part) ||
+           /^\d+(,\d+)+$/.test(part) ||
            /^\*\/\d+$/.test(part) ||
            /^\d+\/\d+$/.test(part) ||
            /^[A-Z]{3}$/i.test(part) ||
-           /^\d+(,\d+)*$/.test(part);
+           /^[A-Z]{3}-[A-Z]{3}$/i.test(part) ||
+           /^\d+L?W?$/.test(part) ||
+           /^L$/.test(part) ||
+           /^\d+#\d+$/.test(part);
   });
 }
 
@@ -316,7 +321,10 @@ function translateStandardCron(parts) {
 
   // Weekday
   if (weekday !== '*' && weekday !== '?') {
-    result += ` ${translateWeekday(weekday)}`;
+    const weekdayTranslation = translateWeekday(weekday);
+    if (weekdayTranslation) {
+      result += ` ${weekdayTranslation}`;
+    }
   }
 
   return result;
@@ -348,6 +356,9 @@ function translateHour(hour) {
   if (hour === '*') return '毎時';
   if (hour.includes('/')) {
     const [start, interval] = hour.split('/');
+    if (start === '*') {
+      return `${interval}時間ごと`;
+    }
     return `${start}時から${interval}時間ごと`;
   }
   if (hour.includes('-')) {
@@ -355,7 +366,7 @@ function translateHour(hour) {
     return `${start}時〜${end}時`;
   }
   if (hour.includes(',')) {
-    return hour.split(',').join(', ');
+    return hour.split(',').map(h => `${h}時`).join('と');
   }
   return hour;
 }
@@ -377,11 +388,32 @@ function translateMonth(month) {
   };
 
   if (month === '*') return '毎月';
-  if (month.includes(',')) {
-    return month.split(',').map(m => months[m.toUpperCase()] || m).join(', ');
+  if (month === '?') return '';
+
+  // 範囲指定
+  if (month.includes('-')) {
+    const [start, end] = month.split('-');
+    const startMonth = months[start.toUpperCase()] || months[start] || start;
+    const endMonth = months[end.toUpperCase()] || months[end] || end;
+    return `${startMonth}から${endMonth}`;
   }
 
-  return months[month.toUpperCase()] || month;
+  // カンマ区切り
+  if (month.includes(',')) {
+    return month.split(',').map(m => months[m.toUpperCase()] || months[m] || m).join('と');
+  }
+
+  // インターバル
+  if (month.includes('/')) {
+    const [start, interval] = month.split('/');
+    if (start === '*') {
+      return `${interval}ヶ月ごと`;
+    }
+    const startMonth = months[start] || start;
+    return `${startMonth}から${interval}ヶ月ごと`;
+  }
+
+  return months[month.toUpperCase()] || months[month] || month;
 }
 
 function translateWeekday(weekday) {
@@ -397,8 +429,38 @@ function translateWeekday(weekday) {
   };
 
   if (weekday === '*') return '毎日';
+  if (weekday === '?') return '';
+
+  // 範囲指定（例: MON-FRI, 1-5）
+  if (weekday.includes('-')) {
+    const [start, end] = weekday.split('-');
+    const startDay = days[start.toUpperCase()] || days[start] || start;
+    const endDay = days[end.toUpperCase()] || days[end] || end;
+    return `${startDay}から${endDay}`;
+  }
+
+  // カンマ区切り
   if (weekday.includes(',')) {
-    return weekday.split(',').map(d => days[d.toUpperCase()] || d).join(', ');
+    return weekday.split(',').map(d => {
+      const trimmed = d.trim();
+      return days[trimmed.toUpperCase()] || days[trimmed] || trimmed;
+    }).join('と');
+  }
+
+  // 特殊記号
+  if (weekday.includes('#')) {
+    const [day, occurrence] = weekday.split('#');
+    const dayName = days[day.toUpperCase()] || days[day] || day;
+    return `第${occurrence}${dayName}`;
+  }
+
+  if (weekday.includes('L')) {
+    const day = weekday.replace('L', '');
+    if (day) {
+      const dayName = days[day.toUpperCase()] || days[day] || day;
+      return `最終${dayName}`;
+    }
+    return '最終日';
   }
 
   return days[weekday.toUpperCase()] || weekday;

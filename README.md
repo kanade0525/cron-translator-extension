@@ -1,6 +1,9 @@
 # Cron翻訳ツール Chrome拡張機能
 
 任意のWebサイトでCron式を自動検出し、日本語で分かりやすく翻訳するChrome拡張機能です。
+<img width="1440" height="900" alt="スクリーンショット 2026-02-16 12 14 27" src="https://github.com/user-attachments/assets/dde0f8be-1af2-4a8a-9957-be6aca780046" />
+<img width="1440" height="779" alt="スクリーンショット 2026-02-17 8 49 48" src="https://github.com/user-attachments/assets/9c1e012b-e20b-4969-90ac-84dc59d646f0" />
+
 
 ## 機能
 

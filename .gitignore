@@ -17,6 +17,12 @@ dist/
 build/
 *.zip
 
+# Rollup build output (source is in src/)
+/content.js
+
+# Playwright
+test-results/
+
 # Logs
 *.log
 

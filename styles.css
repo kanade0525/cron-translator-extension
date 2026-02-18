@@ -16,24 +16,22 @@
 }
 
 .cron-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed !important;
   background: #333;
   color: white;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 6px;
   font-size: 14px;
-  white-space: nowrap;
-  z-index: 10000;
+  z-index: 2147483647 !important; /* Maximum z-index value to ensure tooltip stays on top */
   display: none;
-  margin-bottom: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.4;
-  max-width: 300px;
+  line-height: 1.5;
+  max-width: 500px;
+  min-width: 200px;
   white-space: normal;
+  word-wrap: break-word;
+  pointer-events: none !important;
 }
 
 .cron-tooltip::after {

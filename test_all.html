@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cron翻訳ツール - 総合テストページ</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            background: white;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #2196F3;
+            border-bottom: 2px solid #2196F3;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 15px;
+        }
+        .cron-example {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .cron-example:hover {
+            background: #f0f0f0;
+            transform: translateX(2px);
+        }
+        .cron-expression {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 8px;
+            display: inline-block;
+            background: rgba(33, 150, 243, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .description {
+            color: #666;
+            font-size: 13px;
+            font-style: italic;
+            margin-top: 5px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .aws-badge {
+            background: #FF9900;
+            color: white;
+        }
+        .standard-badge {
+            background: #4CAF50;
+            color: white;
+        }
+        .special-badge {
+            background: #9C27B0;
+            color: white;
+        }
+        .nav {
+            position: sticky;
+            top: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .nav-link {
+            padding: 8px 16px;
+            background: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .nav-link:hover {
+            background: #1976D2;
+        }
+        .info-box {
+            background: #E3F2FD;
+            border: 1px solid #2196F3;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .info-box strong {
+            color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <h1>🕐 Cron翻訳ツール - 総合テストページ</h1>
+
+    <nav class="nav">
+        <div class="nav-links">
+            <a href="#basic" class="nav-link">基本パターン</a>
+            <a href="#aws" class="nav-link">AWS形式</a>
+            <a href="#complex" class="nav-link">複雑なパターン</a>
+            <a href="#special" class="nav-link">特殊パターン</a>
+            <a href="#parentheses" class="nav-link">括弧付き</a>
+            <a href="#realworld" class="nav-link">実用例</a>
+        </div>
+    </nav>
+
+    <div class="info-box">
+        <strong>使い方:</strong> 各Cron式にマウスオーバーすると、日本語翻訳がツールチップで表示されます。
+        拡張機能が有効になっていることを確認してください。
+    </div>
+
+    <!-- 基本パターン -->
+    <section id="basic" class="test-section">
+        <h2>基本的なCronパターン（5フィールド）</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">0 0 * * *</span>
+                <span class="badge standard-badge">毎日</span>
+                <div class="description">毎日深夜0時に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">*/5 * * * *</span>
+                <span class="badge standard-badge">間隔</span>
+                <div class="description">5分ごとに実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 */2 * * *</span>
+                <span class="badge standard-badge">間隔</span>
+                <div class="description">2時間ごとの0分に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">30 8 * * MON-FRI</span>
+                <span class="badge standard-badge">平日</span>
+                <div class="description">平日の8時30分に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 9 * * 1-5</span>
+                <span class="badge standard-badge">平日</span>
+                <div class="description">平日の9時0分に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">15 10,14,18 * * *</span>
+                <span class="badge standard-badge">複数</span>
+                <div class="description">10時、14時、18時の15分に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 1 */3 *</span>
+                <span class="badge standard-badge">間隔</span>
+                <div class="description">3ヶ月ごとの1日0時に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 15 * *</span>
+                <span class="badge standard-badge">月次</span>
+                <div class="description">毎月15日の0時に実行</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AWS EventBridge形式 -->
+    <section id="aws" class="test-section">
+        <h2>AWS EventBridge形式（6フィールド: 分 時 日 月 曜日 年）</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">cron(0 9 * * ? *)</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">毎日9時0分に実行</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 9 * * ? *</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">毎日9時0分に実行（括弧なし）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron(0/5 8-17 ? * MON-FRI *)</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">平日8-17時の5分ごと</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron(0 0 12 * * ?)</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">毎月12日の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron(15 10 ? * MON-FRI *)</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">平日10時15分</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron(0 18 ? * MON-FRI 2024)</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">2024年の平日18時</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 複雑なパターン -->
+    <section id="complex" class="test-section">
+        <h2>複雑なパターン</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">0/15 9-18 * * 1-5</span>
+                <span class="badge special-badge">複雑</span>
+                <div class="description">平日9-18時の15分間隔</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 9-17 * * MON,WED,FRI</span>
+                <span class="badge special-badge">複雑</span>
+                <div class="description">月水金の9-17時の毎時0分</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">30 */3 * * SAT,SUN</span>
+                <span class="badge special-badge">複雑</span>
+                <div class="description">週末の3時間ごとの30分</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 8-10,14-16 * * *</span>
+                <span class="badge special-badge">複雑</span>
+                <div class="description">8-10時と14-16時の0分</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">*/10 * 1-7 * *</span>
+                <span class="badge special-badge">複雑</span>
+                <div class="description">毎月1-7日の10分ごと</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 */2 * *</span>
+                <span class="badge special-badge">複雑</span>
+                <div class="description">2日ごとの0時</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 特殊パターン -->
+    <section id="special" class="test-section">
+        <h2>特殊パターン</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">0 0 L * *</span>
+                <span class="badge special-badge">月末</span>
+                <div class="description">毎月最終日の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 * * 1#2</span>
+                <span class="badge special-badge">第N曜日</span>
+                <div class="description">第2月曜日の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 15W * *</span>
+                <span class="badge special-badge">平日</span>
+                <div class="description">15日に最も近い平日の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 * * 5L</span>
+                <span class="badge special-badge">最終</span>
+                <div class="description">最終金曜日の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 * * 1#1,3#1</span>
+                <span class="badge special-badge">第N曜日</span>
+                <div class="description">第1月曜と第1水曜の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 12 * * ?</span>
+                <span class="badge special-badge">?使用</span>
+                <div class="description">毎日12時（?使用）</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 括弧付き形式 -->
+    <section id="parentheses" class="test-section">
+        <h2>括弧付き形式（Jenkins/AWS等）</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">cron(0 2 * * *)</span>
+                <span class="badge standard-badge">Jenkins</span>
+                <div class="description">毎日2時（5フィールド）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron('H/15 * * * *')</span>
+                <span class="badge standard-badge">Jenkins</span>
+                <div class="description">15分ごと（H=ハッシュ分散）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron("0 0 * * 1-5")</span>
+                <span class="badge standard-badge">Jenkins</span>
+                <div class="description">平日の0時</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron(0 */4 * * * *)</span>
+                <span class="badge aws-badge">AWS</span>
+                <div class="description">4時間ごとの0秒（6フィールド）</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 実用例 -->
+    <section id="realworld" class="test-section">
+        <h2>実用例</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">0 2 * * *</span>
+                <span class="badge standard-badge">バックアップ</span>
+                <div class="description">毎日深夜2時（日次バックアップ）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 3 * * 0</span>
+                <span class="badge standard-badge">バックアップ</span>
+                <div class="description">毎週日曜3時（週次バックアップ）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 4 1 * *</span>
+                <span class="badge standard-badge">バックアップ</span>
+                <div class="description">毎月1日4時（月次バックアップ）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">*/5 * * * *</span>
+                <span class="badge standard-badge">監視</span>
+                <div class="description">5分ごと（ヘルスチェック）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 */6 * * *</span>
+                <span class="badge standard-badge">同期</span>
+                <div class="description">6時間ごと（データ同期）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 0 * * MON</span>
+                <span class="badge standard-badge">レポート</span>
+                <div class="description">毎週月曜0時（週次レポート）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">cron(0 0 1 1 ? *)</span>
+                <span class="badge aws-badge">年次</span>
+                <div class="description">毎年1月1日（年次処理）</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 8,12,17 * * 1-5</span>
+                <span class="badge standard-badge">通知</span>
+                <div class="description">平日の8,12,17時（定時通知）</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6フィールド（秒付き） -->
+    <section class="test-section">
+        <h2>6フィールド形式（秒付き: 秒 分 時 日 月 曜日）</h2>
+        <div class="test-grid">
+            <div class="cron-example">
+                <span class="cron-expression">0 0 9 * * *</span>
+                <span class="badge special-badge">秒付き</span>
+                <div class="description">毎日9時0分0秒</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">30 15 10 * * *</span>
+                <span class="badge special-badge">秒付き</span>
+                <div class="description">毎日10時15分30秒</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">0 */5 * * * *</span>
+                <span class="badge special-badge">秒付き</span>
+                <div class="description">5分ごとの0秒</div>
+            </div>
+            <div class="cron-example">
+                <span class="cron-expression">*/30 * * * * *</span>
+                <span class="badge special-badge">秒付き</span>
+                <div class="description">30秒ごと</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <div class="info-box" style="margin-top: 40px; text-align: center;">
+        <p><strong>Cron翻訳ツール v1.1.0</strong></p>
+        <p>問題を見つけた場合は、GitHubでissueを作成してください。</p>
+    </div>
+</body>
+</html>

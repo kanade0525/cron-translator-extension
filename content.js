@@ -1,6 +1,15 @@
-// Cron expression pattern - 修正版（\bを使わない）
-// 5つ以上のスペース区切りフィールドを検出
-const CRON_REGEX = /([\d\*\?\/\-,]+)\s+([\d\*\?\/\-,]+)\s+([\d\*\?\/\-,LW]+)\s+([\d\*\?\/\-,]+|[A-Z]{3})\s+([\d\*\?\/\-,#]+|[A-Z]{3}(?:-[A-Z]{3})?)(?:\s+([\d\*\?\/\-,]+))?(?:\s+([\d\*\?\/\-,]+))?/gi;
+// Cron expression patterns
+// 標準形式: 5-7フィールドのCron式
+const STANDARD_CRON_REGEX = /([\d\*\?\/\-,]+)\s+([\d\*\?\/\-,]+)\s+([\d\*\?\/\-,LW]+)\s+([\d\*\?\/\-,]+|[A-Z]{3})\s+([\d\*\?\/\-,#]+|[A-Z]{3}(?:-[A-Z]{3})?)(?:\s+([\d\*\?\/\-,]+))?(?:\s+([\d\*\?\/\-,]+))?/gi;
+
+// 括弧付き形式: cron(expression) - AWS EventBridge, Jenkins等で使用
+const PARENTHESES_CRON_REGEX = /cron\s*\(([^)]+)\)/gi;
+
+// 統合パターン
+const CRON_REGEX = new RegExp(
+  `(?:${PARENTHESES_CRON_REGEX.source})|(?:${STANDARD_CRON_REGEX.source})`,
+  'gi'
+);
 
 let settings = {
   enabled: true,
@@ -163,7 +172,7 @@ function highlightCronInNode(textNode) {
   let lastIndex = 0;
 
   for (const match of matches) {
-    const cronExpression = match[0];
+    let cronExpression = match[0];
     const index = match.index;
 
     // Cron式の前のテキスト
@@ -171,9 +180,20 @@ function highlightCronInNode(textNode) {
       fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
     }
 
+    // 括弧付き形式の場合、括弧内の式を抽出
+    let actualExpression = cronExpression;
+    let isParenthesesFormat = false;
+    if (cronExpression.startsWith('cron')) {
+      const parenMatch = cronExpression.match(/cron\s*\(([^)]+)\)/);
+      if (parenMatch) {
+        actualExpression = parenMatch[1].trim();
+        isParenthesesFormat = true;
+      }
+    }
+
     // Cron式をラップ
-    if (isCronExpression(cronExpression)) {
-      const wrapper = createCronWrapper(cronExpression);
+    if (isCronExpression(actualExpression)) {
+      const wrapper = createCronWrapper(cronExpression, actualExpression);
       fragment.appendChild(wrapper);
     } else {
       fragment.appendChild(document.createTextNode(cronExpression));
@@ -191,7 +211,11 @@ function highlightCronInNode(textNode) {
   updateTranslationCount();
 }
 
-function createCronWrapper(cronExpression) {
+function createCronWrapper(displayExpression, actualExpression) {
+  // displayExpressionは表示用（cron(...)を含む）
+  // actualExpressionは翻訳用（括弧内の実際の式）
+  const expressionToTranslate = actualExpression || displayExpression;
+
   const wrapper = document.createElement('span');
   wrapper.className = 'cron-wrapper';
   wrapper.style.cssText = `
@@ -201,28 +225,27 @@ function createCronWrapper(cronExpression) {
     cursor: help;
     border-radius: 2px;
   `;
-  wrapper.textContent = cronExpression;
+  wrapper.textContent = displayExpression;
 
-  // ツールチップ
-  const tooltip = document.createElement('span');
+  // ツールチップ（固定位置で表示）
+  const tooltip = document.createElement('div');
   tooltip.className = 'cron-tooltip';
   tooltip.style.cssText = `
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
+    position: fixed;
     background: #333;
     color: white;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border-radius: 6px;
     font-size: 14px;
-    white-space: nowrap;
-    z-index: 10000;
+    white-space: normal;
+    z-index: 2147483647;
     display: none;
-    margin-bottom: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    max-width: 300px;
+    max-width: 500px;
+    min-width: 200px;
     pointer-events: none;
+    line-height: 1.5;
+    word-wrap: break-word;
   `;
 
   // 矢印
@@ -239,22 +262,70 @@ function createCronWrapper(cronExpression) {
   `;
   tooltip.appendChild(arrow);
 
-  const translation = translateCron(cronExpression);
+  const translation = translateCron(expressionToTranslate);
   tooltip.insertBefore(document.createTextNode(translation), arrow);
-  wrapper.appendChild(tooltip);
 
   // ホバーイベント
   let hoverTimeout;
-  wrapper.addEventListener('mouseenter', () => {
+  wrapper.addEventListener('mouseenter', (e) => {
     hoverTimeout = setTimeout(() => {
+      // ツールチップをbodyに追加（まだ追加されていない場合）
+      if (!document.body.contains(tooltip)) {
+        document.body.appendChild(tooltip);
+      }
+
+      // 要素の位置を取得
+      const rect = wrapper.getBoundingClientRect();
+      const tooltipHeight = 50; // 推定高さ
+
+      // 位置を計算
+      let top = rect.top - tooltipHeight - 10;
+      let left = rect.left + rect.width / 2;
+
+      // 画面上部からはみ出る場合は下に表示
+      if (top < 10) {
+        top = rect.bottom + 10;
+        arrow.style.borderTopColor = 'transparent';
+        arrow.style.borderBottomColor = '#333';
+        arrow.style.top = '-12px';
+      } else {
+        arrow.style.borderBottomColor = 'transparent';
+        arrow.style.borderTopColor = '#333';
+        arrow.style.top = '100%';
+      }
+
       tooltip.style.display = 'block';
+
+      // 実際の幅を取得して中央揃え
+      const tooltipRect = tooltip.getBoundingClientRect();
+      left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+
+      // 画面端からはみ出ないように調整
+      const margin = 10;
+      if (left < margin) {
+        left = margin;
+      } else if (left + tooltipRect.width > window.innerWidth - margin) {
+        left = window.innerWidth - tooltipRect.width - margin;
+      }
+
+      tooltip.style.top = `${top}px`;
+      tooltip.style.left = `${left}px`;
     }, settings.translationDelay);
   });
 
   wrapper.addEventListener('mouseleave', () => {
     clearTimeout(hoverTimeout);
-    tooltip.style.display = 'none';
+    if (tooltip) {
+      tooltip.style.display = 'none';
+    }
   });
+
+  // スクロール時にツールチップを非表示
+  window.addEventListener('scroll', () => {
+    if (tooltip && tooltip.style.display === 'block') {
+      tooltip.style.display = 'none';
+    }
+  }, { passive: true });
 
   return wrapper;
 }
@@ -285,7 +356,8 @@ function translateCron(expression) {
   if (parts.length === 5) {
     return translateStandardCron(parts);
   } else if (parts.length === 6) {
-    return translateCronWithSeconds(parts);
+    // 6フィールドの場合、AWS形式か秒付き形式かを判定
+    return translateSixFieldCron(parts);
   } else if (parts.length === 7) {
     return translateCronWithYear(parts);
   }
@@ -295,85 +367,193 @@ function translateCron(expression) {
 
 function translateStandardCron(parts) {
   const [minute, hour, day, month, weekday] = parts;
-  let result = '';
+  let timeStr = '';
+  let scheduleStr = '';
 
-  // Time translation - improved
+  // 時刻の翻訳 - より親切に
   if (minute === '*' && hour === '*') {
-    result += '毎分';
+    timeStr = '毎分';
   } else if (minute === '0' && hour === '*') {
-    result += '毎時0分';
-  } else if (minute.startsWith('*/')) {
-    const interval = minute.substring(2);
-    result += `${interval}分ごと`;
+    timeStr = '毎時0分';
+  } else if (minute.includes('/')) {
+    const [start, interval] = minute.split('/');
+    if (start === '*') {
+      timeStr = `${interval}分ごと`;
+    } else {
+      timeStr = `${start}分から${interval}分ごと`;
+    }
     if (hour !== '*') {
-      result += ` (${translateHour(hour)})`;
+      if (hour.includes('-')) {
+        const [startHour, endHour] = hour.split('-');
+        timeStr = `${startHour}時から${endHour}時の間、${timeStr}`;
+      } else {
+        timeStr += ` (${translateHour(hour)}時台)`;
+      }
     }
   } else if (hour.startsWith('*/')) {
     const interval = hour.substring(2);
-    result += `${interval}時間ごと`;
-    if (minute !== '*' && minute !== '0') {
-      result += `の${minute}分`;
-    } else if (minute === '0') {
-      result += 'の0分';
+    if (minute === '0') {
+      timeStr = `${interval}時間ごと（各時間の0分）`;
+    } else if (minute === '*') {
+      timeStr = `${interval}時間ごとの毎分`;
+    } else {
+      timeStr = `${interval}時間ごと（各時間の${minute}分）`;
     }
   } else if (minute === '*') {
-    result += `${translateHour(hour)}の毎分`;
+    timeStr = `${translateHour(hour)}時台の毎分`;
   } else if (hour === '*') {
     if (minute.includes(',')) {
-      result += `毎時${minute.split(',').map(m => `${m}分`).join('と')}`;
+      const mins = minute.split(',').map(m => `${m}分`).join('、');
+      timeStr = `毎時${mins}`;
     } else {
-      result += `毎時${minute}分`;
+      timeStr = `毎時${minute}分`;
     }
   } else {
-    // Handle comma-separated hours
+    // 具体的な時刻指定
     if (hour.includes(',')) {
-      const hours = hour.split(',').map(h => `${h}時`).join('と');
-      result += `${hours}${minute.padStart(2, '0')}分`;
+      const hours = hour.split(',').map(h => `${h}時`).join('、');
+      timeStr = `${hours}の${minute.padStart(2, '0')}分`;
+    } else if (hour.includes('-')) {
+      // 時間範囲の場合
+      const [startHour, endHour] = hour.split('-');
+      if (minute === '*') {
+        timeStr = `${startHour}時から${endHour}時の毎分`;
+      } else if (minute.includes(',')) {
+        const mins = minute.split(',').map(m => `${m}分`).join('、');
+        timeStr = `${startHour}時から${endHour}時の毎時${mins}`;
+      } else {
+        timeStr = `${startHour}時から${endHour}時の毎時${minute}分`;
+      }
     } else {
-      result += `${translateHour(hour)}時${minute.padStart(2, '0')}分`;
+      const h = parseInt(hour);
+      const m = minute.padStart(2, '0');
+      timeStr = `${h}時${m}分`;
     }
   }
 
-  // Day and month - improved
-  if (day !== '*' && month !== '*') {
+  // 日付と月の翻訳
+  let dayStr = '';
+  let monthStr = '';
+  let weekdayStr = '';
+
+  // 月の処理
+  if (month !== '*') {
     if (month.startsWith('*/')) {
       const interval = month.substring(2);
-      result += ` ${interval}ヶ月ごとの${day}日`;
+      monthStr = `${interval}ヶ月ごと`;
     } else {
-      result += ` ${translateMonth(month)}${day}日`;
+      monthStr = translateMonth(month);
     }
-  } else if (day !== '*') {
+  }
+
+  // 日の処理
+  if (day !== '*' && day !== '?') {
     if (day === 'L') {
-      result += ` 毎月最終日`;
+      dayStr = '月末';
     } else if (day.includes('W')) {
       const dayNum = day.replace('W', '');
-      result += ` 毎月${dayNum}日に最も近い平日`;
+      dayStr = `${dayNum}日に最も近い平日`;
     } else {
-      result += ` 毎月${day}日`;
-    }
-  } else if (month !== '*') {
-    if (month.startsWith('*/')) {
-      const interval = month.substring(2);
-      result += ` ${interval}ヶ月ごと`;
-    } else {
-      result += ` ${translateMonth(month)}`;
+      dayStr = `${day}日`;
     }
   }
 
-  // Weekday
+  // 曜日の処理
   if (weekday !== '*' && weekday !== '?') {
-    const weekdayTranslation = translateWeekday(weekday);
-    if (weekdayTranslation) {
-      result += ` ${weekdayTranslation}`;
+    weekdayStr = translateWeekday(weekday);
+  }
+
+  // スケジュール文字列の組み立て
+  if (monthStr && dayStr) {
+    scheduleStr = `${monthStr}の${dayStr}`;
+  } else if (dayStr) {
+    scheduleStr = `毎月${dayStr}`;
+  } else if (monthStr) {
+    scheduleStr = monthStr;
+  }
+
+  // 曜日の追加
+  if (weekdayStr) {
+    if (scheduleStr) {
+      scheduleStr = `${weekdayStr}（${scheduleStr}）`;
+    } else {
+      scheduleStr = weekdayStr;
     }
   }
 
-  return result;
+  // 最終的な結果の組み立て
+  if (!scheduleStr && (day === '*' || day === '?') && month === '*' && (weekday === '*' || weekday === '?')) {
+    // 毎日実行
+    scheduleStr = '毎日';
+  }
+
+  // 時刻とスケジュールを組み合わせ
+  if (scheduleStr) {
+    return `${scheduleStr}の${timeStr}に実行`;
+  } else {
+    return `${timeStr}に実行`;
+  }
+}
+
+function translateSixFieldCron(parts) {
+  // 6フィールドの判定：
+  // AWS EventBridge形式: 分 時 日 月 曜日 年
+  // 秒付き形式: 秒 分 時 日 月 曜日
+
+  const firstField = parts[0];
+  const secondField = parts[1];
+  const thirdField = parts[2];
+  const fifthField = parts[4];
+  const lastField = parts[5];
+
+  // AWS EventBridge形式の判定条件
+  // 1. 最後のフィールドが4桁の年
+  // 2. 5番目のフィールドが曜日を示す（?, 曜日名, #記号）
+  // 3. 2番目のフィールドが時間として妥当（0-23または*）
+  const isAWSFormat =
+    /^\d{4}$/.test(lastField) || // 年が指定されている
+    (fifthField === '?' || // 曜日の指定なし
+     /^[A-Z]{3}/i.test(fifthField) || // 曜日名（MON, TUEなど）
+     /^\d+#\d+$/.test(fifthField) || // 第N曜日（1#2など）
+     /^\d+L$/.test(fifthField)) && // 最終曜日（5Lなど）
+    !/^\*\/\d+$/.test(secondField); // 2番目が*/数字でない（時間として不自然）
+
+  // 秒付き形式の判定条件
+  // 1. 最初のフィールドが秒として妥当（0-59, *, */数字）
+  // 2. 2番目のフィールドが*/数字の形式（時間フィールドとしては不自然）
+  const isSecondsFormat =
+    (/^\d+$/.test(firstField) && parseInt(firstField) <= 59) || // 0-59の数字
+    firstField === '*' || // アスタリスク
+    /^\*\/\d+$/.test(firstField) || // */数字の間隔
+    /^\*\/\d+$/.test(secondField); // 2番目が*/数字（時間としては不自然）
+
+  if (isAWSFormat && !isSecondsFormat) {
+    // AWS形式: 分 時 日 月 曜日 年
+    return translateAWSCron(parts);
+  } else {
+    // 秒付き形式: 秒 分 時 日 月 曜日
+    return translateCronWithSeconds(parts);
+  }
+}
+
+function translateAWSCron(parts) {
+  const [minute, hour, day, month, weekday, year] = parts;
+
+  // 標準5フィールド形式として翻訳（年は無視）
+  let base = translateStandardCron([minute, hour, day, month, weekday]);
+
+  if (year && year !== '*' && /^\d{4}$/.test(year)) {
+    base = base.replace('に実行', `（${year}年）に実行`);
+  }
+
+  return base;
 }
 
 function translateCronWithSeconds(parts) {
-  const [second, ...rest] = parts;
-  let base = translateStandardCron(rest);
+  const [second, minute, hour, day, month, weekday] = parts;
+
+  // 秒付き形式：秒 分 時 日 月 曜日
+  let base = translateStandardCron([minute, hour, day, month, weekday]);
 
   if (second !== '*' && second !== '0') {
     base = `${second}秒 ` + base;
@@ -543,5 +723,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     } else {
       removeAllTranslations();
     }
+  } else if (request.action === 'translateSelection') {
+    // 選択されたテキストを取得して翻訳
+    const selection = window.getSelection().toString().trim();
+    if (selection) {
+      // 括弧付き形式の場合、括弧内の式を抽出
+      let expressionToTranslate = selection;
+      if (selection.startsWith('cron')) {
+        const parenMatch = selection.match(/cron\s*\(([^)]+)\)/);
+        if (parenMatch) {
+          expressionToTranslate = parenMatch[1].trim();
+        }
+      }
+
+      // Cron式かチェック
+      if (isCronExpression(expressionToTranslate)) {
+        const translation = translateCron(expressionToTranslate);
+        alert(`Cron式: ${selection}\n翻訳: ${translation}`);
+        sendResponse({ success: true });
+      } else {
+        alert('選択されたテキストは有効なCron式ではありません');
+        sendResponse({ success: false, message: 'Not a valid cron expression' });
+      }
+    } else {
+      sendResponse({ success: false, message: 'No selection' });
+    }
+    return true; // Async response
   }
 });

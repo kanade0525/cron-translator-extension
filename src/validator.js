@@ -9,7 +9,7 @@ export function isCronExpression(text) {
            part === '?' ||
            /^\d+$/.test(part) ||
            /^\d+-\d+$/.test(part) ||
-           /^\d+(,\d+)+$/.test(part) ||
+           /^\d+(-\d+)?(,\d+(-\d+)?)+$/.test(part) ||
            /^\*\/\d+$/.test(part) ||
            /^\d+\/\d+$/.test(part) ||
            /^[A-Z]{3}$/i.test(part) ||
@@ -30,7 +30,8 @@ export function extractCronFromParentheses(text) {
   }
   const match = text.match(/cron\s*\(([^)]+)\)/);
   if (match) {
-    return { display: text, expression: match[1].trim(), isParentheses: true };
+    const inner = match[1].trim().replace(/^['"]|['"]$/g, '');
+    return { display: text, expression: inner, isParentheses: true };
   }
   return { display: text, expression: text, isParentheses: false };
 }

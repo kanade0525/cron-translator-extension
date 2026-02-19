@@ -216,6 +216,32 @@ test.describe('基本パターンの翻訳', () => {
   });
 });
 
+test.describe('AWS EventBridge形式の翻訳', () => {
+  test('cron(0 9 * * ? *)', async () => {
+    await findAndVerifyCron(page, '#aws', 'cron(0 9 * * ? *)', '毎日の9時00分に実行');
+  });
+
+  test('0 9 * * ? *（括弧なし）', async () => {
+    await findAndVerifyCron(page, '#aws', '0 9 * * ? *', '毎日の9時00分に実行');
+  });
+
+  test('cron(0/5 8-17 ? * MON-FRI *)', async () => {
+    await findAndVerifyCron(page, '#aws', 'cron(0/5 8-17 ? * MON-FRI *)', '月曜日から金曜日の8時から17時の間、0分から5分ごとに実行');
+  });
+
+  test('cron(0 0 12 * * ?)', async () => {
+    await findAndVerifyCron(page, '#aws', 'cron(0 0 12 * * ?)', '毎月12日の0時00分に実行');
+  });
+
+  test('cron(15 10 ? * MON-FRI *)', async () => {
+    await findAndVerifyCron(page, '#aws', 'cron(15 10 ? * MON-FRI *)', '月曜日から金曜日の10時15分に実行');
+  });
+
+  test('cron(0 18 ? * MON-FRI 2024)', async () => {
+    await findAndVerifyCron(page, '#aws', 'cron(0 18 ? * MON-FRI 2024)', '月曜日から金曜日の18時00分（2024年）に実行');
+  });
+});
+
 test.describe('複雑なパターンの翻訳', () => {
   test('0 9-17 * * MON,WED,FRI', async () => {
     await findAndVerifyCron(page, '#complex', '0 9-17 * * MON,WED,FRI', '月曜日と水曜日と金曜日の9時から17時の毎時0分に実行');
@@ -223,6 +249,14 @@ test.describe('複雑なパターンの翻訳', () => {
 
   test('0/15 9-18 * * 1-5', async () => {
     await findAndVerifyCron(page, '#complex', '0/15 9-18 * * 1-5', '月曜日から金曜日の9時から18時の間、0分から15分ごとに実行');
+  });
+
+  test('30 */3 * * SAT,SUN', async () => {
+    await findAndVerifyCron(page, '#complex', '30 */3 * * SAT,SUN', '土曜日と日曜日の3時間ごと（各時間の30分）に実行');
+  });
+
+  test('0 8-10,14-16 * * *', async () => {
+    await findAndVerifyCron(page, '#complex', '0 8-10,14-16 * * *', '毎日の8-10時、14-16時の00分に実行');
   });
 
   test('*/10 * 1-7 * *', async () => {
@@ -254,6 +288,24 @@ test.describe('特殊パターンの翻訳', () => {
   test('0 0 * * 1#1,3#1', async () => {
     await findAndVerifyCron(page, '#special', '0 0 * * 1#1,3#1', '第1月曜日と第1水曜日の0時00分に実行');
   });
+
+  test('0 12 * * ?', async () => {
+    await findAndVerifyCron(page, '#special', '0 12 * * ?', '毎日の12時00分に実行');
+  });
+});
+
+test.describe('括弧付き形式の翻訳', () => {
+  test('cron(0 2 * * *)', async () => {
+    await findAndVerifyCron(page, '#parentheses', 'cron(0 2 * * *)', '毎日の2時00分に実行');
+  });
+
+  test('cron("0 0 * * 1-5")', async () => {
+    await findAndVerifyCron(page, '#parentheses', 'cron("0 0 * * 1-5")', '月曜日から金曜日の0時00分に実行');
+  });
+
+  test('cron(0 */4 * * * *)', async () => {
+    await findAndVerifyCron(page, '#parentheses', 'cron(0 */4 * * * *)', '毎日の4分ごとに実行');
+  });
 });
 
 test.describe('実用例の翻訳', () => {
@@ -279,5 +331,27 @@ test.describe('実用例の翻訳', () => {
 
   test('0 8,12,17 * * 1-5', async () => {
     await findAndVerifyCron(page, '#realworld', '0 8,12,17 * * 1-5', '月曜日から金曜日の8時、12時、17時の00分に実行');
+  });
+
+  test('cron(0 0 1 1 ? *)', async () => {
+    await findAndVerifyCron(page, '#realworld', 'cron(0 0 1 1 ? *)', '1月の1日の0時00分に実行');
+  });
+});
+
+test.describe('6フィールド秒付き形式の翻訳', () => {
+  test('0 0 9 * * *', async () => {
+    await findAndVerifyCron(page, 'section:nth-of-type(7)', '0 0 9 * * *', '毎日の9時00分に実行');
+  });
+
+  test('30 15 10 * * *', async () => {
+    await findAndVerifyCron(page, 'section:nth-of-type(7)', '30 15 10 * * *', '30秒 毎日の10時15分に実行');
+  });
+
+  test('0 */5 * * * *', async () => {
+    await findAndVerifyCron(page, 'section:nth-of-type(7)', '0 */5 * * * *', '毎日の5分ごとに実行');
+  });
+
+  test('*/30 * * * * *', async () => {
+    await findAndVerifyCron(page, 'section:nth-of-type(7)', '*/30 * * * * *', '30秒ごと 毎日の毎分に実行');
   });
 });

@@ -6,6 +6,7 @@ export default defineConfig({
     exclude: ['tests/e2e/**'],
     coverage: {
       provider: 'v8',
+      reporter: ['text', 'json-summary', 'html'],
       include: ['src/**/*.js'],
       exclude: ['src/content.js', 'src/dom.js'],
     },

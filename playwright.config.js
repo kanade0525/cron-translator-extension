@@ -1,10 +1,13 @@
 import { defineConfig } from '@playwright/test';
-import path from 'path';
 
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30000,
   retries: 0,
+  reporter: [
+    ['list'],
+    ['json', { outputFile: 'test-results/e2e-results.json' }],
+  ],
   use: {
     headless: false, // Chrome拡張はheadlessでは動作しない
   },

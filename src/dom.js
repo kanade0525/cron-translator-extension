@@ -104,7 +104,7 @@ function processElement(element) {
 
   const nodesToProcess = [];
   let node;
-  while (node = walker.nextNode()) {
+  while ((node = walker.nextNode())) {
     if (node.textContent && testRegex.test(node.textContent)) {
       nodesToProcess.push(node);
     }

@@ -20,8 +20,9 @@ build/
 # Rollup build output (source is in src/)
 /content.js
 
-# Playwright
+# Playwright & Coverage
 test-results/
+coverage/
 
 # Logs
 *.log
